@@ -12,6 +12,13 @@ from rest_framework.permissions import IsAuthenticated
 from core.models import Recipe, Tag, Ingredient
 from recipe import serializers
 
+
+@extend_schema_view(list=extend_schema(
+    parameters=[
+        OpenApiParameter('tags', OpenApiTypes.STR, description='Comma separated list of tag IDs to filter'),
+        OpenApiParameter('ingredients', OpenApiTypes.STR, description='Comma separated list of ingredient IDs to filter')
+    ])
+)
 class RecipeViewSets(viewsets.ModelViewSet):
     """View for managing recipe APIs"""
     serializer_class = serializers.RecipeDetailSerializer
@@ -32,11 +39,11 @@ class RecipeViewSets(viewsets.ModelViewSet):
 
         if tags:
             tag_ids = self._params_to_int(tags)
-            queryset = queryset.filter(tags__id_in=tag_ids)
+            queryset = queryset.filter(tags__id__in=tag_ids)
 
         if ingredients:
             ingredient_ids = self._params_to_int(ingredients)
-            queryset = queryset.filter(ingredients__id_in=ingredient_ids)
+            queryset = queryset.filter(ingredients__id__in=ingredient_ids)
 
         return queryset.filter(user=self.request.user).order_by('-id').distinct()
 
