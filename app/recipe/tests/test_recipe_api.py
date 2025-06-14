@@ -171,10 +171,10 @@ class PrivateRecipeAPITests(TestCase):
         recipes = Recipe.objects.filter(user=self.user)
         self.assertEqual(recipes.count(), 1)
         recipe = recipes[0]
-        self.assertEqual(recipe.tag.count(), 2)
+        self.assertEqual(recipe.tags.count(), 2)
 
         for tag in payload['tags']:
-            exists = recipe.tag.filter(
+            exists = recipe.tags.filter(
                 name=tag['name'],
                 user=self.user
             ).exists()
@@ -197,10 +197,10 @@ class PrivateRecipeAPITests(TestCase):
         recipes = Recipe.objects.filter(user=self.user)
         self.assertEqual(recipes.count(), 1)
         recipe = recipes[0]
-        self.assertEqual(recipe.tag.count(), 2)
-        self.assertIn(tag_indian, recipe.tag.all())
+        self.assertEqual(recipe.tags.count(), 2)
+        self.assertIn(tag_indian, recipe.tags.all())
         for tag in payload['tags']:
-            exists = recipe.tag.filter(
+            exists = recipe.tags.filter(
                 user=self.user,
                 name=tag['name']
             ).exists()
@@ -218,7 +218,7 @@ class PrivateRecipeAPITests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         new_tag = Tag.objects.get(user=self.user, name='Lunch')
-        self.assertIn(new_tag, recipe.tag.all())
+        self.assertIn(new_tag, recipe.tags.all())
 
 
     def test_update_recipe_assign_tag(self):
@@ -226,7 +226,7 @@ class PrivateRecipeAPITests(TestCase):
         tag_breakfast = Tag.objects.create(user=self.user, name='Breakfast')
 
         recipe = create_recipe(user=self.user)
-        recipe.tag.add(tag_breakfast)
+        recipe.tags.add(tag_breakfast)
 
         tag_lunch = Tag.objects.create(user=self.user, name='Lunch')
         payload = {'tags': [{"name": "Lunch"}]}
@@ -234,21 +234,21 @@ class PrivateRecipeAPITests(TestCase):
         res = self.client.patch(url, payload, format='json')
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn(tag_lunch, recipe.tag.all())
-        self.assertNotIn(tag_breakfast, recipe.tag.all())
+        self.assertIn(tag_lunch, recipe.tags.all())
+        self.assertNotIn(tag_breakfast, recipe.tags.all())
 
     def test_clear_recipe_tags(self):
         """Test clearing recipe tags"""
         tag = Tag.objects.create(user=self.user, name='Dessert')
         recipe = create_recipe(user=self.user)
-        recipe.tag.add(tag)
+        recipe.tags.add(tag)
 
         payload = {'tags': []}
         url = detail_url(recipe.id)
         res = self.client.patch(url, payload, format='json')
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(recipe.tag.count(), 0)
+        self.assertEqual(recipe.tags.count(), 0)
 
 
     def test_create_recipe_with_new_ingredients(self):
@@ -314,6 +314,55 @@ class PrivateRecipeAPITests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         new_ingredient = Ingredient.objects.get(user=self.user, name='limes')
         self.assertIn(new_ingredient, recipe.ingredients.all())
+
+
+    def test_filter_by_tags(self):
+        """Filter recipies by tags"""
+        r1 = create_recipe(user=self.user, title='Thai Vegetable Curry')
+        r2 = create_recipe(user=self.user, title='Aubergini with Tahini')
+
+        tag1 = Tag.objects.create(user=self.user, name="Vegan")
+        tag2 = Tag.objects.create(user=self.user, name="Vegetarian")
+
+        r1.tags.add(tag1)
+        r2.tags.add(tag2)
+
+        r3 = create_recipe(user=self.user, title='Fish and chips')
+
+        params = {'tags': f'{tag1.id},{tag2.id}'}
+        res = self.client.get(RECIPES_URL, params)
+
+        s1 = RecipeSerializer(r1)
+        s2 = RecipeSerializer(r2)
+        s3 = RecipeSerializer(r3)
+
+        self.assertIn(s1.data, res.data)
+        self.assertIn(s2.data, res.data)
+        self.assertNotIn(s3.data, res.data)
+
+    def test_filter_by_ingredients(self):
+        """Filter recipies by ingredients"""
+        r1 = create_recipe(user=self.user, title='Posh beans on toast')
+        r2 = create_recipe(user=self.user, title='Curry chicken')
+
+        i1 = Ingredient.objects.create(user=self.user, name="Feta cheese")
+        i2 = Ingredient.objects.create(user=self.user, name="Chicken")
+
+        r1.ingredients.add(i1)
+        r2.ingredients.add(i2)
+
+        r3 = create_recipe(user=self.user, title='Red lentil daal')
+
+        params = {'ingredients': f'{i1.id},{i2.id}'}
+        res = self.client.get(RECIPES_URL, params)
+
+        s1 = RecipeSerializer(r1)
+        s2 = RecipeSerializer(r2)
+        s3 = RecipeSerializer(r3)
+
+        self.assertIn(s1.data, res.data)
+        self.assertIn(s2.data, res.data)
+        self.assertNotIn(s3.data, res.data)
 
 
 class ImageUploadTests(TestCase):

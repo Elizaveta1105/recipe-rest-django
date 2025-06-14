@@ -40,7 +40,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         auth_user = self.context['request'].user
         for tag in tags:
             tag_obj, created = Tag.objects.get_or_create(user=auth_user, **tag)
-            recipe.tag.add(tag_obj)
+            recipe.tags.add(tag_obj)
 
 
     def _get_or_create_ingredients(self, ingredients, recipe):
@@ -69,7 +69,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags', None)
         ingredients = validated_data.pop('ingredients', None)
         if tags is not None:
-            instance.tag.clear()
+            instance.tags.clear()
             self._get_or_create_tags(tags, instance)
 
         if ingredients is not None:
