@@ -24,7 +24,7 @@ Open the api docs to play around http://ec2-3-86-217-78.compute-1.amazonaws.com/
 ## 🛠️ Tech Stack
 
 - **Python 3.11**
-- **Django 3.x**
+- **Django 4.x**
 - **Django REST Framework**
 - **PostgreSQL**
 - **Docker & Docker Compose**
